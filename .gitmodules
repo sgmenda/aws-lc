@@ -1,0 +1,3 @@
+[submodule "third_party/Rooterberg"]
+	path = third_party/Rooterberg
+	url = https://github.com/bleichenbacher-daniel/Rooterberg.git
