@@ -789,6 +789,7 @@ if(BUILD_TESTING)
     bytestring/bytestring_test.cc
     chacha/chacha_test.cc
     cipher_extra/aead_test.cc
+    test_extra/aead_test_extra.cc
     cipher_extra/cipher_test.cc
     compiler_test.cc
     conf/conf_test.cc
@@ -880,6 +881,13 @@ if(BUILD_TESTING)
     $<TARGET_OBJECTS:crypto_test_data>
   )
   set_test_location(${CRYPTO_TEST_EXEC})
+
+  # Use FetchContent to download json parsing library
+  include(FetchContent)
+  FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download/v3.12.0/json.tar.xz)
+  FetchContent_MakeAvailable(json)
+
+  target_link_libraries(${CRYPTO_TEST_EXEC} nlohmann_json::nlohmann_json)
 
   target_link_libraries(${CRYPTO_TEST_EXEC} boringssl_gtest_main)
   target_add_awslc_include_paths(TARGET ${CRYPTO_TEST_EXEC} SCOPE PRIVATE)
