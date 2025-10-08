@@ -31,11 +31,14 @@ static const struct RooterbergAead rAEADs[] = {
     {"aes_gcm_128_96_128", EVP_aead_aes_128_gcm},
     {"aes_gcm_192_96_128", EVP_aead_aes_192_gcm},
     {"aes_gcm_256_96_128", EVP_aead_aes_256_gcm},
-    {"aes_gcm_siv128", EVP_aead_aes_128_gcm_siv},
-    {"aes_gcm_siv256", EVP_aead_aes_256_gcm_siv},
     {"chacha20_poly1305", EVP_aead_chacha20_poly1305},
     {"xchacha20_poly1305", EVP_aead_xchacha20_poly1305},
-    // TODO: no vectors for EVP_aead_aes_(128/256)_ctr_hmac_sha256?
+    {"aes_gcm_siv128", EVP_aead_aes_128_gcm_siv},
+    {"aes_gcm_siv256", EVP_aead_aes_256_gcm_siv},
+    // TODO: no vectors for aes_128_ccm_bluetooth (4-byte tag & 13-byte iv)?
+    {"aes_ccm_128_104_64", EVP_aead_aes_128_ccm_bluetooth_8},
+    // TODO: no vectors for aes_128_ccm_matter (16-byte tag & 13-byte iv)?
+    // TODO: no vectors for aes_(128/256)_ctr_hmac_sha256?
 };
 
 
