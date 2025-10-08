@@ -13,6 +13,9 @@ using json = nlohmann::json;
 #include <openssl/cipher.h>
 #include <openssl/err.h>
 
+std::string TEST_VECTOR_PATH = "./../../third_party/Rooterberg/test_vectors/";
+std::string AEAD_TEST_VECTOR_PATH = TEST_VECTOR_PATH + "aead/";
+
 struct RooterbergAead {
   const char test_name[42];
   const EVP_AEAD *(*func)(void);
@@ -34,10 +37,7 @@ INSTANTIATE_TEST_SUITE_P(
 
 TEST_P(RooterbergAeadTest, TestName) {
   // 0. Parse JSON file
-  // FIXME: replace hardcoded path
-  std::ifstream f(
-      "./../../third_party/Rooterberg/test_vectors/aead/"
-      "aes_gcm_128_96_128.json");
+  std::ifstream f(AEAD_TEST_VECTOR_PATH + GetParam().test_name + ".json");
   if (!f.is_open()) {
     std::cerr << "failed to open" << std::endl;
   }
