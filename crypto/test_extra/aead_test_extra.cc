@@ -66,12 +66,30 @@ TEST_P(RooterbergAeadTest, TestName) {
 
   // 2. Enumerate tests
   for (auto test_case : data["tests"]) {
-    std::cout << test_case["tcId"] << std::endl;
     std::vector<uint8_t> key = JsonHexToBytes(test_case["key"]);
     std::vector<uint8_t> iv = JsonHexToBytes(test_case["iv"]);
     std::vector<uint8_t> aad = JsonHexToBytes(test_case["aad"]);
     std::vector<uint8_t> msg = JsonHexToBytes(test_case["msg"]);
     std::vector<uint8_t> ct = JsonHexToBytes(test_case["ct"]);
-    std::vector<uint8_t> tag= JsonHexToBytes(test_case["tag"]);
+    std::vector<uint8_t> tag = JsonHexToBytes(test_case["tag"]);
+
+    bssl::ScopedEVP_AEAD_CTX ctx;
+    ASSERT_TRUE(EVP_AEAD_CTX_init_with_direction(ctx.get(), GetParam().aead(),
+                                                 key.data(), key.size(),
+                                                 tag.size(), evp_aead_seal));
+
+    std::vector<uint8_t> out(msg.size() +
+                             EVP_AEAD_max_overhead(GetParam().aead()));
+
+    size_t out_len = 0;
+    ASSERT_TRUE(EVP_AEAD_CTX_seal(ctx.get(), out.data(), &out_len, out.size(),
+                                  iv.data(), iv.size(), msg.data(), msg.size(),
+                                  aad.data(), aad.size()));
+    out.resize(out_len);
+
+    EXPECT_EQ(test_case["valid"].get<bool>(),
+              (out.size() == ct.size() + tag.size()) &&
+                  (Bytes(ct) == Bytes(out.data(), ct.size())) &&
+                  (Bytes(tag) == Bytes(out.data() + ct.size(), tag.size())));
   }
 };
