@@ -18,7 +18,7 @@ std::string AEAD_TEST_VECTOR_PATH = TEST_VECTOR_PATH + "aead/";
 
 struct RooterbergAead {
   const char test_name[42];
-  const EVP_AEAD *(*func)(void);
+  const EVP_AEAD *(*aead)(void);
 };
 
 static const struct RooterbergAead rAEADs[] = {
@@ -46,9 +46,17 @@ TEST_P(RooterbergAeadTest, TestName) {
     std::cerr << "parse error" << std::endl;
   }
 
-  // 1. Validate and set algorithm params
+  // 1. Validate algorithm params
   ASSERT_EQ(data["testType"], "Aead");
-  std::cout << data["algorithm"] << std::endl;
+  ASSERT_EQ(data["algorithm"]["algorithmType"], "Aead");
+  ASSERT_EQ(data["algorithm"]["keySize"].get<size_t>(),
+            8 * EVP_AEAD_key_length(GetParam().aead()));
+  ASSERT_EQ(data["algorithm"]["ivSize"].get<size_t>(),
+            8 * EVP_AEAD_nonce_length(GetParam().aead()));
+  ASSERT_EQ(data["algorithm"]["tagSize"].get<size_t>(),
+            8 * EVP_AEAD_max_overhead(GetParam().aead()));
+  // TODO: find a way to verify the primitive?
+  std::cout << data["algorithm"]["primitive"] << std::endl;
 
   // 2. Enumerate tests
 };
