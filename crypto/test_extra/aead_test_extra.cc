@@ -73,23 +73,41 @@ TEST_P(RooterbergAeadTest, TestName) {
     std::vector<uint8_t> ct = JsonHexToBytes(test_case["ct"]);
     std::vector<uint8_t> tag = JsonHexToBytes(test_case["tag"]);
 
+    std::vector<uint8_t> expected_encrypted(ct);
+    expected_encrypted.insert(expected_encrypted.end(), tag.begin(), tag.end());
+    ASSERT_EQ(expected_encrypted.size(), ct.size() + tag.size());
+
     bssl::ScopedEVP_AEAD_CTX ctx;
     ASSERT_TRUE(EVP_AEAD_CTX_init_with_direction(ctx.get(), GetParam().aead(),
                                                  key.data(), key.size(),
                                                  tag.size(), evp_aead_seal));
 
-    std::vector<uint8_t> out(msg.size() +
-                             EVP_AEAD_max_overhead(GetParam().aead()));
+    std::vector<uint8_t> encrypted(msg.size() +
+                                   EVP_AEAD_max_overhead(GetParam().aead()));
 
-    size_t out_len = 0;
-    ASSERT_TRUE(EVP_AEAD_CTX_seal(ctx.get(), out.data(), &out_len, out.size(),
-                                  iv.data(), iv.size(), msg.data(), msg.size(),
-                                  aad.data(), aad.size()));
-    out.resize(out_len);
+    size_t encrypted_len = 0;
+    ASSERT_TRUE(EVP_AEAD_CTX_seal(
+        ctx.get(), encrypted.data(), &encrypted_len, encrypted.size(),
+        iv.data(), iv.size(), msg.data(), msg.size(), aad.data(), aad.size()));
+    encrypted.resize(encrypted_len);
 
     EXPECT_EQ(test_case["valid"].get<bool>(),
-              (out.size() == ct.size() + tag.size()) &&
-                  (Bytes(ct) == Bytes(out.data(), ct.size())) &&
-                  (Bytes(tag) == Bytes(out.data() + ct.size(), tag.size())));
+              Bytes(encrypted) == Bytes(expected_encrypted));
+
+    ctx.Reset();
+    ASSERT_TRUE(EVP_AEAD_CTX_init_with_direction(ctx.get(), GetParam().aead(),
+                                                 key.data(), key.size(),
+                                                 tag.size(), evp_aead_open));
+
+    std::vector<uint8_t> decrypted(msg.size() +
+                                   EVP_AEAD_max_overhead(GetParam().aead()));
+
+    size_t decrypted_len = 0;
+    int ret = EVP_AEAD_CTX_open(
+        ctx.get(), decrypted.data(), &decrypted_len, decrypted.size(),
+        iv.data(), iv.size(), expected_encrypted.data(),
+        expected_encrypted.size(), aad.data(), aad.size());
+    decrypted.resize(decrypted_len);
+    EXPECT_EQ(test_case["valid"].get<bool>(), (ret == 1));
   }
 };
