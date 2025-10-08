@@ -13,8 +13,14 @@ using json = nlohmann::json;
 #include <openssl/cipher.h>
 #include <openssl/err.h>
 
+#include "../test/test_util.h"
+
 std::string TEST_VECTOR_PATH = "./../../third_party/Rooterberg/test_vectors/";
 std::string AEAD_TEST_VECTOR_PATH = TEST_VECTOR_PATH + "aead/";
+
+static std::vector<uint8_t> JsonHexToBytes(nlohmann::basic_json<> in) {
+  return HexToBytes(in.get<std::string>().c_str());
+}
 
 struct RooterbergAead {
   const char test_name[42];
@@ -59,4 +65,13 @@ TEST_P(RooterbergAeadTest, TestName) {
   std::cout << data["algorithm"]["primitive"] << std::endl;
 
   // 2. Enumerate tests
+  for (auto test_case : data["tests"]) {
+    std::cout << test_case["tcId"] << std::endl;
+    std::vector<uint8_t> key = JsonHexToBytes(test_case["key"]);
+    std::vector<uint8_t> iv = JsonHexToBytes(test_case["iv"]);
+    std::vector<uint8_t> aad = JsonHexToBytes(test_case["aad"]);
+    std::vector<uint8_t> msg = JsonHexToBytes(test_case["msg"]);
+    std::vector<uint8_t> ct = JsonHexToBytes(test_case["ct"]);
+    std::vector<uint8_t> tag= JsonHexToBytes(test_case["tag"]);
+  }
 };
