@@ -1,33 +1,15 @@
-#include <stdint.h>
-#include <string.h>
-
-#include <fstream>
-#include <vector>
-
-#include <gtest/gtest.h>
-
-#include <nlohmann/json.hpp>
-using json = nlohmann::json;
+#include "test_extra.hpp"
 
 #include <openssl/aead.h>
-#include <openssl/cipher.h>
-#include <openssl/err.h>
 
-#include "../test/test_util.h"
-
-std::string TEST_VECTOR_PATH = "./../../third_party/Rooterberg/test_vectors/";
 std::string AEAD_TEST_VECTOR_PATH = TEST_VECTOR_PATH + "aead/";
-
-static std::vector<uint8_t> JsonHexToBytes(nlohmann::basic_json<> in) {
-  return HexToBytes(in.get<std::string>().c_str());
-}
 
 struct RooterbergAead {
   const char test_name[42];
   const EVP_AEAD *(*aead)(void);
 };
 
-static const struct RooterbergAead rAEADs[] = {
+static const RooterbergAead rAEADs[] = {
     {"aes_gcm_128_96_128", EVP_aead_aes_128_gcm},
     {"aes_gcm_192_96_128", EVP_aead_aes_192_gcm},
     {"aes_gcm_256_96_128", EVP_aead_aes_256_gcm},
