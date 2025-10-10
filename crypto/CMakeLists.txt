@@ -789,7 +789,6 @@ if(BUILD_TESTING)
     bytestring/bytestring_test.cc
     chacha/chacha_test.cc
     cipher_extra/aead_test.cc
-    test_extra/aead_test_extra.cc
     cipher_extra/cipher_test.cc
     compiler_test.cc
     conf/conf_test.cc
@@ -868,6 +867,8 @@ if(BUILD_TESTING)
     test/file_util.cc
     test/file_test_gtest.cc
     test/x509_util.cc
+    test_extra/aead_test_extra.cc
+    test_extra/mac_test_extra.cc
     thread_test.cc
     trust_token/trust_token_test.cc
     ube/ube_test.cc
