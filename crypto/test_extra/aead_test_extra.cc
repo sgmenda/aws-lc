@@ -35,13 +35,8 @@ INSTANTIATE_TEST_SUITE_P(
 TEST_P(RooterbergAeadTest, TestName) {
   // 0. Parse JSON file
   std::ifstream f(AEAD_TEST_VECTOR_PATH + GetParam().test_name + ".json");
-  if (!f.is_open()) {
-    std::cerr << "failed to open" << std::endl;
-  }
-  json data = json::parse(f, nullptr, false);
-  if (data.is_discarded()) {
-    std::cerr << "parse error" << std::endl;
-  }
+  ASSERT_TRUE(f.is_open()) << "failed to open test file";
+  json data = json::parse(f);
 
   // 1. Validate algorithm params
   ASSERT_EQ(data["testType"], "Aead");
@@ -52,8 +47,6 @@ TEST_P(RooterbergAeadTest, TestName) {
             8 * EVP_AEAD_nonce_length(GetParam().aead()));
   ASSERT_EQ(data["algorithm"]["tagSize"].get<size_t>(),
             8 * EVP_AEAD_max_overhead(GetParam().aead()));
-  // TODO: find a way to verify the primitive?
-  std::cout << data["algorithm"]["primitive"] << std::endl;
 
   // 2. Enumerate tests
   for (auto test_case : data["tests"]) {
