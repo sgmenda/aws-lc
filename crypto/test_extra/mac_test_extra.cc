@@ -11,54 +11,14 @@ class RooterbergMac {
  public:
   virtual ~RooterbergMac() = default;
   std::string test_name;
-  /** Size of MAC digest in bits */
-  virtual unsigned long MacSize() const = 0;
+  virtual unsigned long MacSizeInBits() const = 0;
   virtual bool OneShotMAC(std::vector<uint8_t> &macd,
                           const std::vector<uint8_t> &key,
                           const std::vector<uint8_t> &msg) const = 0;
   explicit RooterbergMac(std::string name) { test_name = name; };
 };
 
-/** tests HMAC with given digest */
-class RooterbergHmac : public RooterbergMac {
- public:
-  const EVP_MD *(*digest)(void);
-
-  RooterbergHmac(std::string name, const EVP_MD *(*md)(void))
-      : RooterbergMac(name), digest(md) {};
-  unsigned long MacSize() const override {
-    return (8 * EVP_MD_size(digest()));  // HMAC size = digest size
-  }
-  bool OneShotMAC(std::vector<uint8_t> &macd, const std::vector<uint8_t> &key,
-                  const std::vector<uint8_t> &msg) const override {
-    unsigned out_len = 0;
-    bool res = HMAC(digest(), key.data(), key.size(), msg.data(), msg.size(),
-                    macd.data(), &out_len);
-    res &= (macd.size() == out_len);
-    return res;
-  }
-};
-
-/** tests HMAC with given digest */
-class RooterbergCmac : public RooterbergMac {
- public:
-  const EVP_CIPHER *(*cipher)(void);
-
-  RooterbergCmac(std::string name, const EVP_CIPHER *(*cp)(void))
-      : RooterbergMac(name), cipher(cp) {};
-  unsigned long MacSize() const override {
-    return (8 * 16);  // Always 16 bytes
-  }
-  bool OneShotMAC(std::vector<uint8_t> &macd, const std::vector<uint8_t> &key,
-                  const std::vector<uint8_t> &msg) const override {
-    if (macd.size() != 16) {
-      return false;
-    }
-    return AES_CMAC(macd.data(), key.data(), key.size(), msg.data(),
-                    msg.size());
-  }
-};
-
+/** Tests for the abstract RooterbergMac */
 static void RunRooterbergMacTest(const RooterbergMac *param) {
   // 0. Parse JSON file
   std::ifstream f(MAC_TEST_VECTOR_PATH + param->test_name + ".json");
@@ -69,7 +29,7 @@ static void RunRooterbergMacTest(const RooterbergMac *param) {
   ASSERT_EQ(data["testType"], "Mac");
   ASSERT_EQ(data["algorithm"]["algorithmType"], "Mac");
   ASSERT_EQ(data["algorithm"]["macSize"].get<size_t>(),
-            param->MacSize());  // HMAC size = digest size
+            param->MacSizeInBits());  // HMAC size = digest size
 
   // 2. Enumerate tests
   for (auto test_case : data["tests"]) {
@@ -87,6 +47,25 @@ static void RunRooterbergMacTest(const RooterbergMac *param) {
   }
 }
 
+/** Tests HMAC with given digest */
+class RooterbergHmac : public RooterbergMac {
+ public:
+  const EVP_MD *(*digest)(void);
+
+  RooterbergHmac(std::string name, const EVP_MD *(*md)(void))
+      : RooterbergMac(name), digest(md) {};
+  unsigned long MacSizeInBits() const override {
+    return (8 * EVP_MD_size(digest()));  // HMAC size = digest size
+  }
+  bool OneShotMAC(std::vector<uint8_t> &macd, const std::vector<uint8_t> &key,
+                  const std::vector<uint8_t> &msg) const override {
+    unsigned out_len = 0;
+    bool res = HMAC(digest(), key.data(), key.size(), msg.data(), msg.size(),
+                    macd.data(), &out_len);
+    res &= (macd.size() == out_len);
+    return res;
+  }
+};
 
 static RooterbergHmac rHMACs[] = {
     {"hmac_sha1_160", EVP_sha1},
@@ -108,6 +87,26 @@ INSTANTIATE_TEST_SUITE_P(
     });
 TEST_P(RooterbergHmacTest, TestName) { RunRooterbergMacTest(&GetParam()); };
 
+
+/** Tests CMAC with given CBC cipher */
+class RooterbergCmac : public RooterbergMac {
+ public:
+  const EVP_CIPHER *(*cipher)(void);
+
+  RooterbergCmac(std::string name, const EVP_CIPHER *(*cp)(void))
+      : RooterbergMac(name), cipher(cp) {};
+  unsigned long MacSizeInBits() const override {
+    return (8 * 16);  // Always 16 bytes
+  }
+  bool OneShotMAC(std::vector<uint8_t> &macd, const std::vector<uint8_t> &key,
+                  const std::vector<uint8_t> &msg) const override {
+    if (macd.size() != 16) {
+      return false;
+    }
+    return AES_CMAC(macd.data(), key.data(), key.size(), msg.data(),
+                    msg.size());
+  }
+};
 
 static const RooterbergCmac rCMACs[] = {
     {"aes_cmac_128_128", EVP_aes_128_cbc},

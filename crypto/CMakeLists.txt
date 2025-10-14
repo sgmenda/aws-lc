@@ -872,6 +872,7 @@ if(BUILD_TESTING)
     test/file_test_gtest.cc
     test/x509_util.cc
     test_extra/aead_test_extra.cc
+    test_extra/kdf_test_extra.cc
     test_extra/mac_test_extra.cc
     thread_test.cc
     trust_token/trust_token_test.cc
