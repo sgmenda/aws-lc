@@ -887,13 +887,12 @@ if(BUILD_TESTING)
     $<TARGET_OBJECTS:crypto_test_data>
   )
   set_test_location(${CRYPTO_TEST_EXEC})
+  
 
-  # Use FetchContent to download json parsing library
-  include(FetchContent)
-  FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download/v3.12.0/json.tar.xz)
-  FetchContent_MakeAvailable(json)
-
-  target_link_libraries(${CRYPTO_TEST_EXEC} nlohmann_json::nlohmann_json)
+  # Is it worth creating a new executable for the extra tests?
+  if(NOT DISABLE_EXTRA_CRYPTO_TESTS)
+    target_link_libraries(${CRYPTO_TEST_EXEC} nlohmann_json::nlohmann_json)
+  endif()
 
   target_link_libraries(${CRYPTO_TEST_EXEC} boringssl_gtest_main)
   target_add_awslc_include_paths(TARGET ${CRYPTO_TEST_EXEC} SCOPE PRIVATE)

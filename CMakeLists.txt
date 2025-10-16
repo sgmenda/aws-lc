@@ -96,6 +96,7 @@ option(ENABLE_DATA_INDEPENDENT_TIMING "Enable automatic setting/resetting Data-I
 option(ENABLE_PRE_SONAME_BUILD "Build AWS-LC without SONAME configuration for shared library builds" ON)
 option(ENABLE_SOURCE_MODIFICATION "Allow the build to update files in the source directory. This is typically done to update versioning." ON)
 option(DISABLE_CPU_JITTER_ENTROPY "Disable usage of CPU Jitter Entropy as an entropy source. This option cannot be used with the FIPS build. With this configuration, randomness generation might not use two independent entropy sources." OFF)
+option(DISABLE_EXTRA_CRYPTO_TESTS "Disable extra crypto correctness tests" OFF)
 
 include(cmake/go.cmake)
 
@@ -1058,6 +1059,12 @@ if(BUILD_TESTING)
     PUBLIC third_party/googletest/include
     PRIVATE third_party/googletest
   )
+
+  # Import json parsing library to parse extra crypto test vectors
+  if(NOT DISABLE_EXTRA_CRYPTO_TESTS)
+    set(JSON_BuildTests OFF CACHE INTERNAL "")  # disable the json library's internal tests
+    add_subdirectory(./third_party/nlohmann_json)
+  endif()
 
   # Declare a dummy target to build all unit tests. Test targets should inject
   # themselves as dependencies next to the target definition.
