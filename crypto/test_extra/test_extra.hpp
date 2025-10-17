@@ -14,7 +14,8 @@ using json = nlohmann::json;
 
 #include "../test/test_util.h"
 
-static std::string TEST_VECTOR_PATH = "./../../third_party/Rooterberg/test_vectors/";
+static std::string TEST_VECTOR_PATH =
+    "./../../third_party/Rooterberg/test_vectors/";
 
 static inline std::vector<uint8_t> JsonHexToBytes(nlohmann::basic_json<> in) {
   return HexToBytes(in.get<std::string>().c_str());
@@ -22,6 +23,16 @@ static inline std::vector<uint8_t> JsonHexToBytes(nlohmann::basic_json<> in) {
 
 static inline uint64_t JsonValueToUint(nlohmann::basic_json<> in) {
   return in.get<uint64_t>();
+}
+
+static inline bool JsonValueToResult(nlohmann::basic_json<> in) {
+  auto s = in.get<std::string>();
+  if (s == "valid") {
+    return true;
+  } else if (s == "invalid") {
+    return false;
+  }
+  return false;
 }
 
 #endif  // HEADER_CRYPTO_TEST_EXTRA_H
