@@ -123,7 +123,6 @@ def update_sources(
 
 def convert_sources(
     cwd: pathlib.Path,
-    tmpdir: pathlib.Path,
     sources: dict,
     skip_convert: bool,
 ):
@@ -131,14 +130,32 @@ def convert_sources(
         utils.info("skipping convert")
         return True
 
-    condir = cwd / "converted"
-    condir.mkdir(parents=True, exist_ok=True)
-    for source_name, source_info in sources.items():
-        source_info["converted_path"] = condir / source_name
-        source_info["converted_path"].mkdir(parents=True, exist_ok=True)
-        assert source_info["converted_path"].is_dir()
+    from vectorslib import convert_vector
 
-    utils.warning("convert_sources isn't yet fully implemented")
+    converted_dir = cwd / "converted"
+    converted_dir.mkdir(parents=True, exist_ok=True)
+
+    for source_name, source_info in sources.items():
+        source_info["converted_path"] = converted_dir / source_name
+        source_info["converted_path"].mkdir(parents=True, exist_ok=True)
+
+    for source_name, source_info in sources.items():
+        upstream_path = source_info["upstream_path"]
+        converted_path = source_info["converted_path"]
+
+        for upstream_file in upstream_path.rglob("*.json"):
+            relative_path = upstream_file.relative_to(upstream_path)
+            converted_file = converted_path / relative_path.with_suffix(".txt")
+
+            converted_file.parent.mkdir(parents=True, exist_ok=True)
+
+            try:
+                convert_vector.convert_file(upstream_file, converted_file)
+                utils.info(f"converted {source_name}/{relative_path}")
+            except Exception as e:
+                utils.error(f"failed to convert {source_name}/{relative_path}: {e}")
+                return False
+
     return True
 
 
@@ -155,7 +172,7 @@ def sync_sources(
         return False
     if not update_sources(cwd, sources, new_file, skip_fetch):
         return False
-    if not convert_sources(cwd, tmpdir, sources, skip_convert):
+    if not convert_sources(cwd, sources, skip_convert):
         return False
     return True
 
