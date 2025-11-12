@@ -159,6 +159,35 @@ def convert_sources(
     return True
 
 
+def generate_and_verify_spec(
+    cwd: pathlib.Path,
+    sources: dict,
+    skip_spec: bool,
+):
+    if skip_spec:
+        utils.info("skipping spec generation")
+        return True
+
+    from vectorslib import generate_spec
+
+    generate_spec.write_spec(cwd, sources)
+    utils.info("generated vectors_spec.md")
+
+    duvet_result = subprocess.run(
+        ["duvet", "report", "--ci"],
+        cwd=cwd,
+        capture_output=True,
+        text=True,
+    )
+    if duvet_result.returncode != 0:
+        utils.error("duvet verification failed")
+        utils.error(duvet_result.stderr)
+        return False
+    utils.info("duvet verification passed")
+
+    return True
+
+
 def sync_sources(
     cwd: pathlib.Path,
     tmpdir: pathlib.Path,
@@ -166,6 +195,7 @@ def sync_sources(
     new_file: typing.Optional[str],
     skip_fetch: bool,
     skip_convert: bool,
+    skip_spec: bool,
     using_custom_tmpdir: bool = False,
 ):
     if not fetch_sources(tmpdir, sources, skip_fetch, using_custom_tmpdir):
@@ -173,6 +203,8 @@ def sync_sources(
     if not update_sources(cwd, sources, new_file, skip_fetch):
         return False
     if not convert_sources(cwd, sources, skip_convert):
+        return False
+    if not generate_and_verify_spec(cwd, sources, skip_spec):
         return False
     return True
 
@@ -214,6 +246,11 @@ def main() -> int:
         help="skip converting vectors to file_test.h format",
     )
     parser.add_argument(
+        "--skip-spec",
+        action="store_true",
+        help="skip generating vectors_spec.md and duvet verification",
+    )
+    parser.add_argument(
         "--tmpdir",
         metavar="DIR",
         help="use custom temporary directory for cloned repositories",
@@ -233,6 +270,7 @@ def main() -> int:
             args.new,
             args.skip_fetch,
             args.skip_convert,
+            args.skip_spec,
             using_custom_tmpdir=True,
         ):
             return 1
@@ -240,7 +278,7 @@ def main() -> int:
         with tempfile.TemporaryDirectory() as tmpdirname:
             tmpdir = pathlib.Path(tmpdirname)
             if not sync_sources(
-                cwd, tmpdir, sources, args.new, args.skip_fetch, args.skip_convert
+                cwd, tmpdir, sources, args.new, args.skip_fetch, args.skip_convert, args.skip_spec
             ):
                 return 1
 
