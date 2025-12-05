@@ -146,12 +146,19 @@ def convert_sources(
 def generate_and_verify_spec(
     cwd: pathlib.Path,
     sources: dict,
+    new_file_added: bool,
 ):
     generate_spec.write_spec(cwd, sources)
     utils.info("generated vectors_spec.md")
 
+    duvet_args = ["duvet", "report"]
+    if not new_file_added:
+        # use existing snapshot, when not adding new files
+        # this ensures that we do not accidentally reduce coverage
+        duvet_args += ["--ci"]
+
     duvet_result = subprocess.run(
-        ["duvet", "report", "--ci"],
+        duvet_args,
         cwd=cwd,
         capture_output=True,
         text=True,
@@ -188,7 +195,7 @@ def sync_sources(
         utils.info("skipping convert")
 
     if not args.skip_spec:
-        generate_and_verify_spec(cwd, sources)
+        generate_and_verify_spec(cwd, sources, args.new)
     else:
         utils.info("skipping spec generation")
 
