@@ -1,0 +1,44 @@
+# One-off probe for reviewing aws/aws-lc#3661: does the macos-15-intel runner
+# have BMI2/ADX, so the non-_alt s2n-bignum curve25519 path (which reads the
+# relocated tables) runs, and does it pass alongside the forced _alt path?
+name: pr3661-macos-intel-probe
+on:
+  push:
+    branches: ["ci/pr3661-macos-intel-probe"]
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: macos-15-intel
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          - { name: static, flags: "-DBUILD_SHARED_LIBS=0" }
+          - { name: fips-shared, flags: "-DBUILD_SHARED_LIBS=1 -DFIPS=1" }
+    name: probe (${{ matrix.config.name }})
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version: ">=1.18"
+      - name: CPU
+        run: |
+          sysctl -n machdep.cpu.brand_string
+          for f in BMI2 ADX AVX2 AVX512F; do
+            if sysctl -n machdep.cpu.features machdep.cpu.leaf7_features | grep -qw "$f"; then echo "$f=yes"; else echo "$f=no"; fi
+          done
+      - name: Build
+        run: |
+          brew list ninja >/dev/null 2>&1 || brew install ninja
+          cmake -GNinja -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo ${{ matrix.config.flags }}
+          ninja -C build crypto_test
+          nm -m build/crypto/libcrypto.* 2>/dev/null | grep -E '25519.*_constant$|BORINGSSL_bcm_rodata_(start|end)' || true
+      - name: 25519 tests, native dispatch (non-_alt if BMI2+ADX)
+        run: ./build/crypto/crypto_test --gtest_filter='*25519*:*Ed25519*:*X25519*'
+      - name: 25519 tests, BMI2/ADX hidden (forces _alt)
+        env:
+          OPENSSL_ia32cap: "~0x0:~0x80100"
+        run: ./build/crypto/crypto_test --gtest_filter='*25519*:*Ed25519*:*X25519*'
+      - name: Full crypto_test
+        run: ./build/crypto/crypto_test
